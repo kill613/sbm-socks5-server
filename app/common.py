@@ -1,5 +1,5 @@
 """共享安装工具；兼容Python3.6，以适配CentOS7的独立服务端。"""
-import concurrent.futures
+import downloader
 import errno
 import hashlib
 import ipaddress
@@ -179,61 +179,17 @@ def public_asset_url(url):
 
 
 def probe(url):
-    started = time.monotonic()
-    try:
-        request = Request(url, headers={'Range': 'bytes=0-65535', 'User-Agent': 'sbm-installer/1'})
-        with OPENER.open(request, timeout=7) as response:
-            data = response.read(65536)
-        if len(data) < 100 or data[:2] != b'\x1f\x8b':
-            return None
-        return len(data)/max(time.monotonic()-started, 0.001)
-    except (OSError, ValueError):
-        return None
+    return downloader.probe(url, OPENER)
 
 
 def fetch(url, destination, expected):
-    public_asset_url(url)
-    if not re.fullmatch(r'[0-9a-f]{64}', expected):
-        raise ValueError('缺少固定的可信SHA-256，拒绝下载')
-    destination = Path(destination)
-    print('正在检测中国加速点对本次实际文件的下载可用性……', flush=True)
-    candidates = [base+url for base in MIRRORS]
-    results = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-        futures = {pool.submit(probe, candidate): candidate for candidate in candidates}
-        for future in concurrent.futures.as_completed(futures):
-            score = future.result()
-            if score is not None:
-                results.append((score, futures[future]))
-    ordered = [item[1] for item in sorted(results, reverse=True)] + [url]
-    for candidate in ordered:
-        fd, temporary = tempfile.mkstemp(prefix='.download-', dir=str(destination.parent))
-        os.close(fd)
-        try:
-            print('尝试下载：'+urlparse(candidate).netloc, flush=True)
-            request = Request(candidate, headers={'User-Agent': 'sbm-installer/1'})
-            deadline = time.monotonic()+240
-            with OPENER.open(request, timeout=20) as response, open(temporary, 'wb') as stream:
-                total = 0
-                while True:
-                    block = response.read(256*1024)
-                    if not block:
-                        break
-                    total += len(block)
-                    if total > 256*1024*1024 or time.monotonic() > deadline:
-                        raise ValueError('文件大小或下载时间超出限制')
-                    stream.write(block)
-            if digest(temporary) != expected:
-                raise ValueError('SHA-256不匹配，拒绝使用该加速点返回的文件')
-            os.replace(temporary, str(destination))
-            print('下载成功，官方固定SHA-256校验通过。', flush=True)
-            return candidate
-        except (OSError, ValueError) as exc:
-            print('本下载点失败：'+str(exc), flush=True)
-        finally:
-            if os.path.exists(temporary):
-                os.unlink(temporary)
-    raise RuntimeError('所有加速点及官方直连均未成功；未安装未校验的文件')
+    return downloader.fetch(url, destination, expected, public_asset_url, OPENER,
+                            mirrors=MIRRORS, probe_fn=probe)
+
+
+def fetch_project(url, destination, expected):
+    return downloader.fetch(url, destination, expected, downloader.project_url, OPENER,
+                            mirrors=MIRRORS, probe_fn=probe)
 
 
 def asset(name, work):

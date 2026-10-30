@@ -112,7 +112,7 @@ def main():
         sk5.ROOT.mkdir(mode=0o750)
         sk5.ROOT.chmod(0o750)
         os.chown(str(sk5.ROOT), 0, group)
-        for name in ('common.py', 'sk5.py', 'sk5_firewall.py', 'release-lock.json'):
+        for name in ('common.py', 'downloader.py', 'sk5.py', 'sk5_firewall.py', 'release-lock.json'):
             atomic(MODULES / name, (HERE / name).read_bytes(), 0o750 if name.endswith('.py') else 0o644)
         shutil.copy2(source / 'bin/3proxy', MODULES / '3proxy')
         (MODULES / '3proxy').chmod(0o755)

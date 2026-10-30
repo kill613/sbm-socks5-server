@@ -17,8 +17,9 @@ jobs:
             sleep 1
           done
           docker exec sk5-debian13 sh -c '! command -v python3'
-      - name: Install without preinstalled Python
-        run: printf '223.5.5.5\n\n\n\nAbcdefGh123456789p\n' | docker exec -i sk5-debian13 bash /source/install.sh
+          docker exec sk5-debian13 sh -c '! command -v curl'
+      - name: Install without preinstalled Python or curl
+        run: printf '223.5.5.5\n\n\n\nAbcdefGh123456789p\n' | docker exec -i sk5-debian13 bash /source/bootstrap-server.sh
       - name: Verify actual service and account management
         run: docker exec -e GITHUB_ACTIONS=true -e SBM_CI_DISPOSABLE=1 sk5-debian13 python3 /source/tests/smoke_systemd.py --verify-only
       - name: Diagnostics
@@ -36,8 +37,9 @@ jobs:
         with:
           python-version: '3.13'
       - run: python build_installer.py --check
+      - run: python build_download_entry.py --check
       - run: python -m compileall -q app tests
-      - run: bash -n install.sh && bash -n bootstrap.sh
+      - run: bash -n install.sh && bash -n bootstrap.sh && bash -n bootstrap-server.sh && bash -n download.sh
       - run: python -m unittest discover -s tests -p 'test_*.py' -v
       - run: python tests/build_core.py
         env:
