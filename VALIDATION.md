@@ -45,3 +45,7 @@ TCP DNS和DNS转TCP成功不能代表普通UDP；本次普通UDP证据为独立�
 ## 回退
 
 运行安装结束打印目录中的`rollback.sh`，只停止/禁用本服务并清理其专属规则，保留配置与备份供核对。不会回退整个操作系统的软件包，也不停止原GOST/L2TP。管理配置修改另有`/etc/sbm-sk5/backups`中的逐次备份及失败恢复机制。
+
+## 统一下载/软件源回退验证
+
+程序提交4edb436ab8cf48e299d17b7eaee63e74de9bf852：[Actions](https://github.com/kill613/sbm-socks5-server/actions/runs/41010212421)三组全部通过。包括16项单元测试、真实TCP/UDP协议、Debian13无curl/Python的完整引导与安装，以及Ubuntu实际安装和保留已有L2TP端口测试。国内加速点采用完整下载摘要验证，失败切换；官方更新清单仅从GitHub API经TLS读取。系统源失败回退保留签名验证。未在用户云服务器覆盖安装，不把CI当作RPM/ARM现场验收。
