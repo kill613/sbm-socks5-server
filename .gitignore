@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.log
+*.tar.gz
+*.zip
+.venv/
+access.txt
+settings.json
+3proxy.cfg
+firewall-state.json
+*-backup-*/
+*-install-*/

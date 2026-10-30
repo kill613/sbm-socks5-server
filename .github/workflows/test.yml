@@ -1,0 +1,32 @@
+name: Standalone SOCKS5 tests
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  protocol:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python build_installer.py --check
+      - run: python -m compileall -q app tests
+      - run: bash -n install.sh && bash -n bootstrap.sh
+      - run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - run: python tests/build_core.py
+        env:
+          SBM_BUILD_DIR: ${{ runner.temp }}/sk5-core
+      - run: python tests/wire_socks.py -v
+  one-click-systemd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo env GITHUB_ACTIONS=true SBM_CI_DISPOSABLE=1 /usr/bin/python3 tests/smoke_systemd.py
+      - run: sudo apt-get install -y nftables
+      - run: sudo unshare --net /usr/bin/python3 tests/netns_firewall.py
+      - name: Service diagnostics
+        if: failure()
+        run: sudo journalctl -u sbm-sk5.service -u sbm-sk5-firewall.service -n 60 --no-pager

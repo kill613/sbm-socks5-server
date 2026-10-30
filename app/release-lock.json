@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "3proxy-source": {
+    "version": "1.0.2",
+    "url": "https://github.com/3proxy/3proxy/releases/download/1.0.2/3proxy-1.0.2.tar.gz",
+    "sha256": "60967fe736bb0ba93fe125c9574c8ad3fec1d2d94d11d981b871379bd94de964"
+  }
+}
