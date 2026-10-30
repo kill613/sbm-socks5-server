@@ -16,11 +16,12 @@ import sk5
 before = Path('/proc/sys/net/ipv4/ip_forward').read_text()
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sentinel:
     sentinel.bind(('0.0.0.0', 38162))
-    result = subprocess.run(['bash', str(ROOT / 'install.sh')],
-        input='223.5.5.5\n\n\n\nAbcdefGh123456789p\n',
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=1200)
-    print(result.stdout)
-    assert result.returncode == 0, '单文件安装失败'
+    if '--verify-only' not in sys.argv:
+        result = subprocess.run(['bash', str(ROOT / 'install.sh')],
+            input='223.5.5.5\n\n\n\nAbcdefGh123456789p\n',
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=1200)
+        print(result.stdout)
+        assert result.returncode == 0, '单文件安装失败'
     config = common.private_json(sk5.ROOT / 'settings.json')
     assert len(config['users'][0]['name']) == 8
     assert len(str(config['port'])) == 5
