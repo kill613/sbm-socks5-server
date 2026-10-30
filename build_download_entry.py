@@ -29,7 +29,7 @@ bash "$sbm_boot/package.sh"
 )
 '''
 
-def install_command(root, server=False, accelerated=False):
+def install_command(root, server=False, accelerated=True):
     repo = 'sbm-socks5-server' if server else 'sing-box-hy2-multiline'
     script = 'install.sh' if server else 'install-manager.sh'
     target = 'sk5-install.sh' if server else 'sbm-install.sh'
@@ -43,8 +43,8 @@ def install_command(root, server=False, accelerated=False):
 def documented_install(root, server=False):
     return ('<!-- bootstrap-command:start -->\n```bash\n'+install_command(root, server)+'```\n'
             '<!-- bootstrap-command:end -->\n\n'
-            '<details>\n<summary>GitHub直连慢时：国内加速安装（含SHA-256校验）</summary>\n\n```bash\n'
-            +install_command(root, server, accelerated=True)+'```\n\n</details>')
+            '<details>\n<summary>备用：GitHub官方直连安装</summary>\n\n```bash\n'
+            +install_command(root, server, accelerated=False)+'```\n\n</details>')
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     old=normalized(readme)
     start=old.index('<!-- bootstrap-command:start -->')
     end=old.index('<!-- bootstrap-command:end -->',start)+len('<!-- bootstrap-command:end -->')
-    if old[end:].startswith('\n\n<details>\n<summary>GitHub直连慢时：'):
+    if old[end:].startswith('\n\n<details>\n<summary>'):
         end=old.index('</details>',end)+len('</details>')
     updated=old[:start]+documented_install(ROOT,server=True)+old[end:]
     if args.check:

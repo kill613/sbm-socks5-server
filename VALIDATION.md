@@ -49,3 +49,5 @@ TCP DNS和DNS转TCP成功不能代表普通UDP；本次普通UDP证据为独立�
 ## 统一下载/软件源回退验证
 
 程序提交4edb436ab8cf48e299d17b7eaee63e74de9bf852：[Actions](https://github.com/kill613/sbm-socks5-server/actions/runs/41010212421)三组全部通过。包括16项单元测试、真实TCP/UDP协议、Debian13无curl/Python的完整引导与安装，以及Ubuntu实际安装和保留已有L2TP端口测试。国内加速点采用完整下载摘要验证，失败切换；官方更新清单仅从GitHub API经TLS读取。系统源失败回退保留签名验证。未在用户云服务器覆盖安装，不把CI当作RPM/ARM现场验收。
+
+用户后续反馈CentOS上官方原始文件地址首次下载超时，而国内加速加固定摘要命令可正确安装；入口优先级据此修正。该反馈没有本轮服务状态/公网UDP输出，不能扩大为完整CentOS协议或性能验收。

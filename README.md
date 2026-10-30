@@ -12,15 +12,15 @@ CA证书由install.sh自动检查并安装。若首次HTTPS下载尚未启动脚
 
 <!-- bootstrap-command:start -->
 ```bash
-curl -fL --connect-timeout 8 --max-time 120 https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && bash sk5-install.sh
+curl -fL --connect-timeout 8 --max-time 120 https://ghfast.top/https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && printf '%s  %s\n' 18e494893d92763b50ffa155fa929f6e8cb25e0537d96ee3b558a95cdb0b2c6e sk5-install.sh | sha256sum -c - && bash sk5-install.sh
 ```
 <!-- bootstrap-command:end -->
 
 <details>
-<summary>GitHub直连慢时：国内加速安装（含SHA-256校验）</summary>
+<summary>备用：GitHub官方直连安装</summary>
 
 ```bash
-curl -fL --connect-timeout 8 --max-time 120 https://ghfast.top/https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && printf '%s  %s\n' 18e494893d92763b50ffa155fa929f6e8cb25e0537d96ee3b558a95cdb0b2c6e sk5-install.sh | sha256sum -c - && bash sk5-install.sh
+curl -fL --connect-timeout 8 --max-time 120 https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && bash sk5-install.sh
 ```
 
 </details>

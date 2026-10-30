@@ -39,3 +39,5 @@ class DownloadTests(unittest.TestCase):
         documented = readme.split('<!-- bootstrap-command:start -->\n```bash\n', 1)[1].split('```', 1)[0]
         self.assertEqual(documented, build_download_entry.install_command(ROOT, server=True))
         self.assertEqual(len(documented.splitlines()), 1)
+        self.assertIn('https://ghfast.top/https://raw.githubusercontent.com/', documented)
+        self.assertIn('| sha256sum -c - && bash ', documented)
