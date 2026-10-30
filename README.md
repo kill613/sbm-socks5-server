@@ -6,7 +6,9 @@
 
 ## 一键安装
 
-请先自行安装curl和CA证书，再在Linux的root终端复制下面这一条命令。系统识别、环境准备、内核加速、软件源回退和中文问答全部在install.sh内部完成。
+请先自行安装curl，再在Linux的root终端复制下面这一条命令。系统识别、环境准备、内核加速、软件源回退和中文问答全部在install.sh内部完成。
+
+CA证书由install.sh自动检查并安装。若首次HTTPS下载尚未启动脚本就报证书错误，可下载install.sh后上传服务器执行，由脚本通过系统签名验证的软件源补齐证书。
 
 <!-- bootstrap-command:start -->
 ```bash
