@@ -29,6 +29,23 @@ bash "$sbm_boot/package.sh"
 )
 '''
 
+def install_command(root, server=False, accelerated=False):
+    repo = 'sbm-socks5-server' if server else 'sing-box-hy2-multiline'
+    script = 'install.sh' if server else 'install-manager.sh'
+    target = 'sk5-install.sh' if server else 'sbm-install.sh'
+    url = 'https://raw.githubusercontent.com/kill613/'+repo+'/main/'+script
+    prefix = 'https://ghfast.top/' if accelerated else ''
+    command = 'curl -fL --connect-timeout 8 --max-time 120 '+prefix+url+' -o '+target
+    if accelerated:
+        command += " && printf '%s  %s\\n' "+sha(root / script)+' '+target+' | sha256sum -c -'
+    return command+' && bash '+target+'\n'
+
+def documented_install(root, server=False):
+    return ('<!-- bootstrap-command:start -->\n```bash\n'+install_command(root, server)+'```\n'
+            '<!-- bootstrap-command:end -->\n\n'
+            '<details>\n<summary>GitHub直连慢时：国内加速安装（含SHA-256校验）</summary>\n\n```bash\n'
+            +install_command(root, server, accelerated=True)+'```\n\n</details>')
+
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument('--check', action='store_true')
@@ -43,8 +60,9 @@ if __name__ == '__main__':
     old=normalized(readme)
     start=old.index('<!-- bootstrap-command:start -->')
     end=old.index('<!-- bootstrap-command:end -->',start)+len('<!-- bootstrap-command:end -->')
-    code=text.removeprefix('#!/usr/bin/env bash\n')
-    updated=old[:start]+'<!-- bootstrap-command:start -->\n```bash\n'+code+'```\n<!-- bootstrap-command:end -->'+old[end:]
+    if old[end:].startswith('\n\n<details>\n<summary>GitHub直连慢时：'):
+        end=old.index('</details>',end)+len('</details>')
+    updated=old[:start]+documented_install(ROOT,server=True)+old[end:]
     if args.check:
         assert old==updated, '请重新生成README中的下载入口'
     else:

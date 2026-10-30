@@ -37,4 +37,5 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual((ROOT / 'bootstrap-server.sh').read_text(encoding='utf-8'), text)
         readme = (ROOT / 'README.md').read_text(encoding='utf-8')
         documented = readme.split('<!-- bootstrap-command:start -->\n```bash\n', 1)[1].split('```', 1)[0]
-        self.assertEqual(documented, text.removeprefix('#!/usr/bin/env bash\n'))
+        self.assertEqual(documented, build_download_entry.install_command(ROOT, server=True))
+        self.assertEqual(len(documented.splitlines()), 1)
