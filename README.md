@@ -94,6 +94,6 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 
 CI额外编译真实3proxy并测认证、TCP和UDP数据收发、固定范围及耗尽拒绝；在一次性Ubuntu24虚拟机执行完整单文件安装、账户增删改、修改端口、自启动、停止状态保持及独立网络空间的真实防火墙清理。
 
-测试通过与否以对应提交的Actions结果为准。Debian13无预装Python的容器安装及Ubuntu24安装已通过；真实空白Debian13机器及重启、CentOS/Rocky/Alma、ARM、云公网UDP仍需实机验收；回环或CI成功不替代这些证据。
+测试通过与否以对应提交的Actions结果为准。Debian13无预装Python的容器安装及Ubuntu24安装已通过；用户后续已提供SSTap公网TCP/UDP及Windows经Debian的非DNS UDP123双向成功证据，Debian实际重启后业务仍正常。云SOCKS5服务器重启、游戏、CentOS/Rocky/Alma及ARM等仍待对应实测，详见VALIDATION.md。
 
 内核使用3proxy1.0.2及严格UDP范围补丁，明文见`app/core_patch.py`。本仓库安装/管理代码采用MIT；上游许可证、补丁范围说明见[THIRD_PARTY.md](THIRD_PARTY.md)。

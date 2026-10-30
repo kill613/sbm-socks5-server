@@ -2,7 +2,7 @@
 
 日期：2026-10-30（北京时间）。
 
-结论：独立源码已发布；下列自动化、Debian13容器及一次性Ubuntu虚拟机测试通过。**新云服务器公网UDP及Windows实际使用仍未验收，不据此宣称整个部署已验收。**
+结论：独立源码已发布；下列自动化、Debian13容器及一次性Ubuntu虚拟机测试通过。**后续用户已提供SSTap TCP/UDP及Windows经Debian的非DNS UDP123成功证据；云服务器实际重启、游戏及其他平台仍未全部验收。**
 
 ## 可核对证据
 
@@ -27,14 +27,20 @@
 
 真实内核TCP/UDP数据测试在回环地址进行；完整安装中的公网通告采用测试地址，不是公网中继往返测试。L2TP隔离检查使用端口占用及规则哨兵，没有在该虚拟机运行真实L2TP业务。这些边界不能省略。
 
+## 后续用户实机结果（2026-10-30）
+
+- 云端服务running、开机自启enabled，本机认证与公网UDP通告通过；用户提供SSTap原生TCP/UDP成功截图。
+- 用户在新Debian整合管理端部署一条SOCKS5线路；Windows网页正常，出口与服务端一致。
+- 非DNS UDP123测试取得三次有效NTP响应，同时Debian抓包显示客户端三次请求和回复双向经过TUN；不依赖DNS转TCP。
+- Debian实际重启后，用户确认网页、出口和三次NTP查询仍正常。这是管理服务器重启，云SOCKS5服务器没有相应整机重启证据。
+
+以上为用户提供的输出和截图，不是助手远程执行。公开记录省略实际代理IP及凭据。[完整分流验收范围](https://github.com/kill613/sing-box-hy2-multiline/blob/main/installer/FIELD_ACCEPTANCE_20261030.md)。
+
 ## 仍待实机验收
 
-1. 真实空白Debian13机器的安装及整机重启，以及CentOS/Rocky/Alma、ARM平台安装；Debian13容器安装已通过。
-2. 在已有GOST/L2TP的实际云机上选择独立端口安装，并回归原业务。
-3. 云安全组放行TCP入口和完整UDP中继范围后，由远端实测TCP及UDP DNS，确认公网NAT保持中继端口号。
-4. Windows客户端/游戏的实际UDP数据往返；若用于其他系统的透明分流，还应确认源IP与各出口的对应关系。
+云端机器实际重启、已有GOST/L2TP业务回归、实际游戏/QUIC、CentOS/Rocky/Alma及ARM、云服务端对应的新系统实机安装和恢复演练仍需对应证据。管理端Debian13实机通过不能证明云服务端在所有操作系统上通过。
 
-建议先在远端运行`python3 app/probe_sk5.py`，再测试Windows实际应用。`sk5 check`仅为本机认证与通告检查，不得单独作为公网UDP验收依据。
+TCP DNS和DNS转TCP成功不能代表普通UDP；本次普通UDP证据为独立的UDP123 NTP双向抓包。NTP样本不能证明所有UDP应用或性能。
 
 ## 回退
 
