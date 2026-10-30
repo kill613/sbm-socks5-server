@@ -2,7 +2,7 @@
 
 日期：2026-10-30（北京时间）。
 
-结论：独立源码已发布；下列自动化与一次性虚拟机测试通过。**新云服务器公网UDP及Windows实际使用仍未验收，不据此宣称整个部署已验收。**
+结论：独立源码已发布；下列自动化、Debian13容器及一次性Ubuntu虚拟机测试通过。**新云服务器公网UDP及Windows实际使用仍未验收，不据此宣称整个部署已验收。**
 
 ## 可核对证据
 
@@ -10,6 +10,7 @@
 - [Actions完整记录](https://github.com/kill613/sbm-socks5-server/actions/runs/40981164335)：`protocol`与`one-click-systemd`均为success。
 - 该版本`install.sh`的SHA-256：`a50beae4cc48bf982fd514ff58c1ed66edba4598e5bca54920510ef347fe53eb`。匿名公开下载后已与本地文件核对一致。
 - 本报告只新增记录，不改被测程序或单文件安装器。
+- 后续验证提交：[`c704d7fc0a7b1b0021ecd84e36a509e9f690e7e8`](https://github.com/kill613/sbm-socks5-server/commit/c704d7fc0a7b1b0021ecd84e36a509e9f690e7e8)。[最新Actions](https://github.com/kill613/sbm-socks5-server/actions/runs/40982057306)三组job全部通过，新增没有预装Python的Debian13 systemd容器完整安装及账户管理验证；安装脚本SHA未变。
 
 ## 已通过
 
@@ -18,6 +19,7 @@
 | 单元测试13项 | 凭据长度与字符规则、认证配置、输入拒绝、空闲UDP范围、下载校验换点、旧版iproute检测、修改失败恢复、停止状态保持 |
 | 真实内核测试4项 | 第二账户的TCP数据往返、匿名和错误密码拒绝、UDP数据往返及公网通告/固定端口、端口范围耗尽时拒绝越界 |
 | 完整单文件安装 | 一次性Ubuntu24.04 amd64虚拟机，直接执行公开的install.sh，由清华源准备组件，编译固定SHA的上游源码及严格范围补丁 |
+| Debian13环境引导 | 从未预装Python的Debian13容器执行单文件安装，由清华源安装环境并启动真实systemd服务，随后验证账户/端口管理；容器共享宿主内核，不等同于裸机 |
 | 服务与管理 | 立即启动及设置自启、账户添加/查看/重设/删除、改TCP端口、停止后修改配置仍保持停止、再次启动和自检 |
 | 防火墙 | 独立网络空间内真实nft及iptables添加、改端口、精确清理，保留预置L2TP规则 |
 | 隔离 | 安装时保留占用UDP38162的测试哨兵，不修改全局IPv4转发值 |
@@ -27,7 +29,7 @@
 
 ## 仍待实机验收
 
-1. 全新Debian13，以及CentOS/Rocky/Alma、ARM平台的完整安装。
+1. 真实空白Debian13机器的安装及整机重启，以及CentOS/Rocky/Alma、ARM平台安装；Debian13容器安装已通过。
 2. 在已有GOST/L2TP的实际云机上选择独立端口安装，并回归原业务。
 3. 云安全组放行TCP入口和完整UDP中继范围后，由远端实测TCP及UDP DNS，确认公网NAT保持中继端口号。
 4. Windows客户端/游戏的实际UDP数据往返；若用于其他系统的透明分流，还应确认源IP与各出口的对应关系。
