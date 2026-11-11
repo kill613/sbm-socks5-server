@@ -6,24 +6,15 @@
 
 ## 一键安装
 
-请先自行安装curl，再在Linux的root终端复制下面这一条命令。系统识别、环境准备、内核加速、软件源回退和中文问答全部在install.sh内部完成。
+请先自行安装curl，再在Linux的root终端复制下面这一条命令。系统识别、环境准备、内核直连下载、软件源准备和中文问答全部在install.sh内部完成。
 
 CA证书由install.sh自动检查并安装。若首次HTTPS下载尚未启动脚本就报证书错误，可下载install.sh后上传服务器执行，由脚本通过系统签名验证的软件源补齐证书。
 
 <!-- bootstrap-command:start -->
 ```bash
-curl -fL --connect-timeout 8 --max-time 120 https://ghfast.top/https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && printf '%s  %s\n' 18e494893d92763b50ffa155fa929f6e8cb25e0537d96ee3b558a95cdb0b2c6e sk5-install.sh | sha256sum -c - && bash sk5-install.sh
+curl -fL --connect-timeout 8 --max-time 120 https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && printf '%s  %s\n' ef3454c1b5c7f9465b99294e9ef83cb8a396ebac384ceea600a6311f82236e02 sk5-install.sh | sha256sum -c - && bash sk5-install.sh
 ```
 <!-- bootstrap-command:end -->
-
-<details>
-<summary>备用：GitHub官方直连安装</summary>
-
-```bash
-curl -fL --connect-timeout 8 --max-time 120 https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && bash sk5-install.sh
-```
-
-</details>
 
 install.sh为自包含脚本，不需要GitHub账号、克隆仓库、预先安装Python或手动拼接多个脚本。安装器内部程序包与明文`app/`一致，构建脚本及校验均公开。不要使用`curl | bash`，以免安装问答读不到终端输入。
 
@@ -46,9 +37,9 @@ install.sh为自包含脚本，不需要GitHub账号、克隆仓库、预先安�
 
 识别Debian12/13、Ubuntu22.04/24.04/26.04、CentOS7、CentOS9Stream、Rocky/Alma8/9/10；必须使用systemd。未识别系统停止，不混用不同发行版软件源。
 
-通过**本次安装专用清华源**安装组件，保留系统原源及软件包签名校验，不执行全系统升级。CentOS7使用清华归档源；该系统已停止维护，兼容代码不能视为旧系统安全保证。新服务器建议Debian13。服务端使用本机源码编译，ARM和各RPM发行版仍需各自实机验证。
+系统依赖通过发行版软件源安装并验证软件包签名。CentOS 7 使用官方归档源；该系统已停止维护，兼容代码不能视为旧系统安全保证。新服务器建议Debian13。服务端使用本机源码编译，ARM和各RPM发行版仍需各自实机验证。
 
-每次下载3proxy源码都会实际探测中国GitHub加速站，按可用性和速率尝试，失败换点，最后官方直连。必须与代码内固定的官方SHA-256匹配才编译；加速站返回网页或损坏包会被拒绝。不关闭TLS校验，不向镜像站发送代理密码或GitHub认证信息。
+3proxy 源码从 GitHub 官方地址下载，通过固定 SHA-256 校验后编译。
 
 ## 管理命令
 
@@ -113,4 +104,4 @@ CI额外编译真实3proxy并测认证、TCP和UDP数据收发、固定范围及
 
 ## 统一下载策略
 
-公开安装包及3proxy内核支持国内加速、超时换点、官方回退和固定SHA-256；损坏文件不覆盖原文件。APT/RPM使用相应的软件源及签名校验，不经GitHub代理。内外网IP探测属于实时查询，保持直连，不发送账号或认证信息。加速逻辑不会更改已经运行的代理。
+公开安装包及 3proxy 源码均通过 GitHub 官方地址直连下载，并校验 SHA-256。APT/RPM 依赖使用发行版软件源及签名校验。

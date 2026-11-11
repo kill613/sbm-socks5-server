@@ -32,7 +32,7 @@ SBM_OFFICIAL_MANIFEST
 }
 
 sbm_download() {
-  local url="$1" target="$2" expected="$3" prefix temporary
+  local url="$1" target="$2" expected="$3" temporary
   [[ "$url" =~ ^https://raw\.githubusercontent\.com/kill613/(sing-box-hy2-multiline|sbm-socks5-server)/(main|[0-9a-f]{40})/(install-manager\.sh|install\.sh|update-admin\.sh|update-address-ui\.sh|update-download-tools\.sh)$ ]] || {
     echo '拒绝代理非指定公开项目文件。' >&2; return 1;
   }
@@ -41,19 +41,16 @@ sbm_download() {
     echo '缺少可信SHA-256或下载目标为链接，未下载。' >&2; return 1;
   }
   temporary=$(mktemp "${target}.download-XXXXXX") || return 1
-  for prefix in 'https://ghfast.top/' 'https://gh-proxy.com/' 'https://ghproxy.net/' ''; do
-    echo "正在尝试：${prefix:-GitHub直连}" >&2
-    if curl -fL --proto '=https' --proto-redir '=https' \
-        --connect-timeout 5 --max-time 120 --speed-limit 1024 --speed-time 20 \
-        --max-filesize 268435456 "${prefix}${url}" -o "$temporary" \
-      && printf '%s  %s\n' "$expected" "$temporary" | sha256sum -c - >&2
-    then
-      if mv -f -- "$temporary" "$target"; then return 0; fi
-      break
-    fi
-    echo '下载或校验失败，自动切换下载点。' >&2
-  done
+  echo '正在从 GitHub 直连下载。' >&2
+  if curl -fL --proto '=https' --proto-redir '=https' \
+      --connect-timeout 5 --max-time 120 --speed-limit 1024 --speed-time 20 \
+      --max-filesize 268435456 "$url" -o "$temporary" \
+    && printf '%s  %s\n' "$expected" "$temporary" | sha256sum -c - >&2 \
+    && mv -f -- "$temporary" "$target"
+  then
+    return 0
+  fi
   rm -f -- "$temporary"
-  echo '所有下载点失败；原目标文件未改动。' >&2
+  echo 'GitHub 下载或校验失败，原目标文件保留。' >&2
   return 1
 }

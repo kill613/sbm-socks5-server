@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 (
 #!/usr/bin/env bash
-# 只为本次安装使用独立清华源；不覆盖系统原有源文件。
+# 只为本次安装使用临时发行版源；不覆盖系统原有源文件。
 set -Eeuo pipefail
 umask 077
 export PYTHONIOENCODING=UTF-8
@@ -32,17 +32,17 @@ sbm_apt_sources() {
   [[ "$code" =~ ^[a-z]+$ ]] || { echo '无法识别发行版代号。' >&2; return 1; }
   if [[ "$SBM_OS" == debian ]]; then
     cat >"$file" <<EOF
-deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] $scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/debian $code main contrib non-free non-free-firmware
-deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] $scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/debian $code-updates main contrib non-free non-free-firmware
-deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] $scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/debian-security $code-security main contrib non-free non-free-firmware
+deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] $scheme://$SBM_REPO_HOST/debian $code main contrib non-free non-free-firmware
+deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] $scheme://$SBM_REPO_HOST/debian $code-updates main contrib non-free non-free-firmware
+deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] $scheme://$SBM_REPO_HOST/debian-security $code-security main contrib non-free non-free-firmware
 EOF
   else
     local mirror=ubuntu
     [[ "$(dpkg --print-architecture)" == amd64 ]] || mirror=ubuntu-ports
     cat >"$file" <<EOF
-deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] $scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/$mirror $code main restricted universe multiverse
-deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] $scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/$mirror $code-updates main restricted universe multiverse
-deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] $scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/$mirror $code-security main restricted universe multiverse
+deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] $scheme://$SBM_REPO_HOST/$mirror $code main restricted universe multiverse
+deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] $scheme://$SBM_REPO_HOST/$mirror $code-updates main restricted universe multiverse
+deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] $scheme://$SBM_REPO_HOST/$mirror $code-security main restricted universe multiverse
 EOF
   fi
 }
@@ -52,45 +52,25 @@ sbm_rpm_sources() {
   mkdir -p "$directory" || return
   : > "$directory/sbm.repo" || return
   if [[ "$SBM_OS:$SBM_MAJOR" == centos:7 ]]; then
-    base="$scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/centos-vault/7.9.2009"
+    base="$scheme://vault.centos.org/7.9.2009"
     key=/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
     [[ -r "$key" ]] || { echo '缺少系统自带CentOS7签名密钥，停止。' >&2; return 1; }
     for variant in os updates extras; do
       cat >>"$directory/sbm.repo" <<EOF
 [sbm-$variant]
-name=SBM TUNA CentOS7 $variant
+name=SBM CentOS7 $variant
 baseurl=$base/$variant/\$basearch/
 enabled=1
 gpgcheck=1
 gpgkey=file://$key
 EOF
     done
-    echo 'CentOS7使用清华历史归档源；该系统已停止官方维护，安装兼容性将单独标记。'
-  else
-    case "$SBM_OS" in
-      rocky) base="$scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/rocky/$SBM_MAJOR"; key="/etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-$SBM_MAJOR"; [[ -r "$key" ]] || key=/etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial;;
-      almalinux) base="$scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/almalinux/$SBM_MAJOR"; key="/etc/pki/rpm-gpg/RPM-GPG-KEY-AlmaLinux-$SBM_MAJOR"; [[ -r "$key" ]] || key=/etc/pki/rpm-gpg/RPM-GPG-KEY-AlmaLinux;;
-      centos) base="$scheme://${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}/centos-stream/$SBM_MAJOR-stream"; key=/etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial;;
-    esac
-    [[ -r "$key" ]] || { echo "缺少系统签名密钥：$key，停止。" >&2; return 1; }
-    for variant in BaseOS AppStream; do
-      cat >>"$directory/sbm.repo" <<EOF
-[sbm-$variant]
-name=SBM TUNA $SBM_OS $variant
-baseurl=$base/$variant/\$basearch/os/
-enabled=1
-gpgcheck=1
-gpgkey=file://$key
-EOF
-    done
+    echo 'CentOS7使用官方历史归档源；该系统已停止官方维护，安装兼容性将单独标记。'
   fi
 }
 
 sbm_dependencies_once() {
   local work="$1" scheme=https
-  if ! getent ahostsv4 ${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn} >/dev/null; then
-    echo "无法解析当前软件源：${SBM_REPO_HOST:-mirrors.tuna.tsinghua.edu.cn}；将尝试其他源。" >&2; return 1
-  fi
   [[ -s /etc/ssl/certs/ca-certificates.crt || -s /etc/pki/tls/certs/ca-bundle.crt ]] || scheme=http
   # Old EL7 CA bundles may exist but cannot validate current HTTPS chains.
   # Bootstrap only signed CA packages over HTTP, then require HTTPS again.
@@ -98,7 +78,7 @@ sbm_dependencies_once() {
   echo '使用临时软件源安装依赖；保留原系统源与软件包签名校验。'
   export NEEDRESTART_MODE=l
   if [[ "$SBM_FAMILY" == apt ]]; then
-    local file="$work/tuna.list"
+    local file="$work/official.list"
     local -a apt=(apt-get -o "Dir::Etc::sourcelist=$file" -o Dir::Etc::sourceparts=- -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o APT::Update::Error-Mode=any -o Acquire::http::Pipeline-Depth=0)
     sbm_apt_sources "$scheme" "$file" || return
     "${apt[@]}" update || return
@@ -123,20 +103,14 @@ sbm_dependencies_once() {
   python3 -c 'import sys; assert sys.version_info >= (3,6), "需要Python3.6或更新版本"'
 }
 
-# 按本次实际安装结果切换国内源；不覆盖系统现有源，不关闭签名校验。
+# 使用发行版官方源或系统已配置的签名源。
 sbm_dependencies() {
-  local sbm_host sbm_official=deb.debian.org
+  local SBM_REPO_HOST=deb.debian.org
   if [[ "$SBM_OS" == ubuntu ]]; then
-    sbm_official=archive.ubuntu.com
-    [[ "$(dpkg --print-architecture)" == amd64 ]] || sbm_official=ports.ubuntu.com
+    SBM_REPO_HOST=archive.ubuntu.com
+    [[ "$(dpkg --print-architecture)" == amd64 ]] || SBM_REPO_HOST=ports.ubuntu.com
   fi
-  for sbm_host in mirrors.tuna.tsinghua.edu.cn mirrors.ustc.edu.cn; do
-    echo "尝试系统依赖源：$sbm_host"
-    SBM_REPO_HOST="$sbm_host"
-    if sbm_dependencies_once "$@"; then return 0; fi
-    echo '当前系统源失败，自动切换备用源。' >&2
-  done
-  if [[ "$SBM_FAMILY" == rpm ]]; then
+  if [[ "$SBM_FAMILY" == rpm && "$SBM_OS:$SBM_MAJOR" != centos:7 ]]; then
     local sbm_manager=yum
     command -v dnf >/dev/null && sbm_manager=dnf
     echo '尝试系统已配置的发行版软件源，强制保留软件包签名验证。'
@@ -144,8 +118,7 @@ sbm_dependencies() {
     python3 -c 'import sys; assert sys.version_info >= (3,6)' || return
     return 0
   fi
-  SBM_REPO_HOST="$sbm_official"
-  echo "尝试发行版官方源：$sbm_official"
+  echo "尝试发行版官方源：$SBM_REPO_HOST"
   sbm_dependencies_once "$@"
 }
 # 公共文件下载器。仅处理公开项目脚本，必须提供可信SHA-256。
@@ -182,7 +155,7 @@ SBM_OFFICIAL_MANIFEST
 }
 
 sbm_download() {
-  local url="$1" target="$2" expected="$3" prefix temporary
+  local url="$1" target="$2" expected="$3" temporary
   [[ "$url" =~ ^https://raw\.githubusercontent\.com/kill613/(sing-box-hy2-multiline|sbm-socks5-server)/(main|[0-9a-f]{40})/(install-manager\.sh|install\.sh|update-admin\.sh|update-address-ui\.sh|update-download-tools\.sh)$ ]] || {
     echo '拒绝代理非指定公开项目文件。' >&2; return 1;
   }
@@ -191,20 +164,17 @@ sbm_download() {
     echo '缺少可信SHA-256或下载目标为链接，未下载。' >&2; return 1;
   }
   temporary=$(mktemp "${target}.download-XXXXXX") || return 1
-  for prefix in 'https://ghfast.top/' 'https://gh-proxy.com/' 'https://ghproxy.net/' ''; do
-    echo "正在尝试：${prefix:-GitHub直连}" >&2
-    if curl -fL --proto '=https' --proto-redir '=https' \
-        --connect-timeout 5 --max-time 120 --speed-limit 1024 --speed-time 20 \
-        --max-filesize 268435456 "${prefix}${url}" -o "$temporary" \
-      && printf '%s  %s\n' "$expected" "$temporary" | sha256sum -c - >&2
-    then
-      if mv -f -- "$temporary" "$target"; then return 0; fi
-      break
-    fi
-    echo '下载或校验失败，自动切换下载点。' >&2
-  done
+  echo '正在从 GitHub 直连下载。' >&2
+  if curl -fL --proto '=https' --proto-redir '=https' \
+      --connect-timeout 5 --max-time 120 --speed-limit 1024 --speed-time 20 \
+      --max-filesize 268435456 "$url" -o "$temporary" \
+    && printf '%s  %s\n' "$expected" "$temporary" | sha256sum -c - >&2 \
+    && mv -f -- "$temporary" "$target"
+  then
+    return 0
+  fi
   rm -f -- "$temporary"
-  echo '所有下载点失败；原目标文件未改动。' >&2
+  echo 'GitHub 下载或校验失败，原目标文件保留。' >&2
   return 1
 }
 
@@ -213,7 +183,7 @@ sbm_fresh_guard
 sbm_boot=$(mktemp -d /root/sbm-bootstrap-XXXXXX)
 trap 'rm -f -- "$sbm_boot/package.sh"' EXIT
 sbm_dependencies "$sbm_boot"
-sbm_download "https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh" "$sbm_boot/package.sh" 18e494893d92763b50ffa155fa929f6e8cb25e0537d96ee3b558a95cdb0b2c6e
+sbm_download "https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh" "$sbm_boot/package.sh" ef3454c1b5c7f9465b99294e9ef83cb8a396ebac384ceea600a6311f82236e02
 bash -n "$sbm_boot/package.sh"
 bash "$sbm_boot/package.sh"
 )

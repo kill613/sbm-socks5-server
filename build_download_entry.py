@@ -29,22 +29,19 @@ bash "$sbm_boot/package.sh"
 )
 '''
 
-def install_command(root, server=False, accelerated=True):
+def install_command(root, server=False):
     repo = 'sbm-socks5-server' if server else 'sing-box-hy2-multiline'
     script = 'install.sh' if server else 'install-manager.sh'
     target = 'sk5-install.sh' if server else 'sbm-install.sh'
     url = 'https://raw.githubusercontent.com/kill613/'+repo+'/main/'+script
-    prefix = 'https://ghfast.top/' if accelerated else ''
-    command = 'curl -fL --connect-timeout 8 --max-time 120 '+prefix+url+' -o '+target
-    if accelerated:
-        command += " && printf '%s  %s\\n' "+sha(root / script)+' '+target+' | sha256sum -c -'
+    command = 'curl -fL --connect-timeout 8 --max-time 120 '+url+' -o '+target
+    command += " && printf '%s  %s\\n' "+sha(root / script)+' '+target+' | sha256sum -c -'
     return command+' && bash '+target+'\n'
 
 def documented_install(root, server=False):
     return ('<!-- bootstrap-command:start -->\n```bash\n'+install_command(root, server)+'```\n'
-            '<!-- bootstrap-command:end -->\n\n'
-            '<details>\n<summary>备用：GitHub官方直连安装</summary>\n\n```bash\n'
-            +install_command(root, server, accelerated=False)+'```\n\n</details>')
+            '<!-- bootstrap-command:end -->')
+
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()

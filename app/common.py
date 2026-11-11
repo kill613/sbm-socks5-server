@@ -20,7 +20,6 @@ from urllib.parse import urlparse
 from urllib.request import Request, ProxyHandler, build_opener
 
 HERE = Path(__file__).resolve().parent
-MIRRORS = ('https://ghfast.top/', 'https://gh-proxy.com/', 'https://ghproxy.net/')
 ALPHABET = string.ascii_letters.replace('O', '') + '123456789'
 OPENER = build_opener(ProxyHandler({}))
 
@@ -178,18 +177,12 @@ def public_asset_url(url):
         raise ValueError('下载器仅接受指定公开内核的GitHub Release地址，不转发私有代码或凭据')
 
 
-def probe(url):
-    return downloader.probe(url, OPENER)
-
-
 def fetch(url, destination, expected):
-    return downloader.fetch(url, destination, expected, public_asset_url, OPENER,
-                            mirrors=MIRRORS, probe_fn=probe)
+    return downloader.fetch(url, destination, expected, public_asset_url, OPENER)
 
 
 def fetch_project(url, destination, expected):
-    return downloader.fetch(url, destination, expected, downloader.project_url, OPENER,
-                            mirrors=MIRRORS, probe_fn=probe)
+    return downloader.fetch(url, destination, expected, downloader.project_url, OPENER)
 
 
 def asset(name, work):

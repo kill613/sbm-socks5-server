@@ -16,26 +16,24 @@ from test_server import fixture
 
 
 class Transactions(unittest.TestCase):
-    def test_corrupt_mirror_is_rejected_then_next_verified_source_wins(self):
+    def test_core_download_uses_official_url(self):
         good = b'\x1f\x8b'+b'official-fixture'*100
         url = 'https://github.com/3proxy/3proxy/releases/download/1.0.2/source.tar.gz'
         calls = []
         def download(request, timeout):
             calls.append(request.full_url)
             self.assertIsNone(request.get_header('Authorization'))
-            return io.BytesIO(b'<html>wrong file</html>' if 'mirror-one' in request.full_url else good)
+            return io.BytesIO(good)
         with tempfile.TemporaryDirectory() as d, \
-             patch.object(common, 'MIRRORS', ('https://mirror-one/', 'https://mirror-two/')), \
-             patch.object(common, 'probe', side_effect=lambda u: 2 if 'mirror-one' in u else 1), \
              patch.object(common.OPENER, 'open', side_effect=download):
             destination = Path(d) / 'core.tar.gz'
             result = common.fetch(url, destination, hashlib.sha256(good).hexdigest())
             self.assertEqual(destination.read_bytes(), good)
-            self.assertTrue(result.startswith('https://mirror-two/'))
-            self.assertEqual(len(calls), 2)
+            self.assertEqual(result, url)
+            self.assertEqual(calls, [url])
 
     def test_failed_all_sources_preserve_existing_file(self):
-        with tempfile.TemporaryDirectory() as d, patch.object(common, 'MIRRORS', ()), \
+        with tempfile.TemporaryDirectory() as d, \
              patch.object(common.OPENER, 'open', return_value=io.BytesIO(b'corrupt')):
             destination = Path(d) / 'core.tar.gz'; destination.write_bytes(b'previous')
             with self.assertRaises(RuntimeError):
