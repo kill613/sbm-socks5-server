@@ -12,7 +12,7 @@ CA证书由install.sh自动检查并安装。若首次HTTPS下载尚未启动脚
 
 <!-- bootstrap-command:start -->
 ```bash
-curl -fL --connect-timeout 8 --max-time 120 https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && printf '%s  %s\n' ef3454c1b5c7f9465b99294e9ef83cb8a396ebac384ceea600a6311f82236e02 sk5-install.sh | sha256sum -c - && bash sk5-install.sh
+curl -fL --connect-timeout 8 --max-time 120 https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh -o sk5-install.sh && printf '%s  %s\n' 02994380b8f9863feb58e85c953555e4f11e45c4bf3b43b61360dc8bde442da6 sk5-install.sh | sha256sum -c - && bash sk5-install.sh
 ```
 <!-- bootstrap-command:end -->
 
@@ -74,6 +74,10 @@ sk5 firewall                   # 恢复本服务专属防火墙规则
 - **完整UDP中继端口范围**，供UDP数据往返。只放行与TCP同号的UDP端口不够。
 
 安装器配置本机firewalld/nftables/iptables中的专属规则，不清空全局策略、不重启整个防火墙；没有云账号权限，不能自动修改云安全组。外部工具重新加载防火墙后可运行`sk5 firewall`。
+
+与 SingBox 中转同机安装时，每条 IPv4 输入基础链都需要放行 TCP 入口及 UDP 中继范围。`inet sbm_relay` 的默认丢弃策略会覆盖其他表中的接受结果。安装器为中转防火墙添加独立的启动后恢复配置，并安排 SK5 防火墙在其后启动；保留 SSH、WireGuard、HY2、L2TP 原有规则和默认策略。
+
+已有 SK5 安装无需重装，可下载本仓库的 `repair-firewall.sh`，核对固定版本的 SHA-256 后以 root 运行。它先在 `/root/sk5-firewall-repair-*` 备份现有规则、管理模块及服务附加配置，再更新防火墙管理模块、补齐端口并设置重启恢复。不修改账号、密码、IP、端口或 3proxy 内核，不重启代理及 VPN 服务。失败时恢复管理模块及附加配置，保留整机防火墙备份供检查，不自动回灌全局规则。完成后仍需远端验证 TCP 和 UDP。
 
 服务端会向客户端返回配置的公网UDP中继IP，避免返回无法访问的10.x内网IP。云NAT需支持IP一对一、UDP端口号保持不变；共享公网/PAT或额外UDP封锁需单独核验。UDP范围用尽则拒绝请求，不回退到范围之外的随机端口。
 

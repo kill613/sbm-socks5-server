@@ -4,12 +4,19 @@ import re
 import shlex
 import shutil
 from pathlib import Path
+import tempfile
 
 from common import atomic, run
 
 STATE = Path('/etc/sbm-sk5/firewall-state.json')
 COMMENTS = ('sbm-sk5-tcp', 'sbm-sk5-udp')
 CHAIN = 'SBM_SK5'
+RELAY_UNIT = Path('/etc/systemd/system/sbm-relay-firewall.service')
+RELAY_DROPIN = Path('/etc/systemd/system/sbm-relay-firewall.service.d/91-sk5-coexist.conf')
+RELAY_HOOK = ('# Managed by sbm-sk5: restore only SOCKS5 port rules.\n'
+              '[Service]\nExecStartPost=/usr/local/bin/sk5 firewall\n')
+ORDER_DROPIN = Path('/etc/systemd/system/sbm-sk5-firewall.service.d/91-relay-order.conf')
+ORDER_HOOK = '# Managed by sbm-sk5: apply after relay table creation.\n[Unit]\nAfter=sbm-relay-firewall.service\n'
 
 
 def command_ok(*args):
@@ -40,6 +47,53 @@ def nft_clear(items):
         if rule.get('comment') in COMMENTS and rule.get('family') in ('ip', 'inet'):
             run('nft', 'delete', 'rule', rule['family'], rule['table'], rule['chain'],
                 'handle', str(int(rule['handle'])))
+
+
+def nft_sync(items, port, udp):
+    """Replace only tagged port rules, in one checked kernel transaction."""
+    chains = native_chains(items)
+    if not chains:
+        raise ValueError('原nft输入链已变化，请核对防火墙后重试')
+    commands = []
+    for item in items:
+        rule = item.get('rule', {})
+        if rule.get('comment') in COMMENTS and rule.get('family') in ('ip', 'inet'):
+            # Validate identifiers before rendering a batch file.
+            if not all(re.fullmatch(r'[A-Za-z0-9_-]+', rule.get(k, '')) for k in ('table', 'chain')):
+                raise ValueError('现有专属nft规则名称需人工核对，未修改')
+            commands.append('delete rule {} {} {} handle {}'.format(
+                rule['family'], rule['table'], rule['chain'], int(rule['handle'])))
+    for family, table, chain in chains:
+        for protocol, value, comment in (('tcp', port, COMMENTS[0]), ('udp', udp, COMMENTS[1])):
+            commands.append('insert rule {} {} {} ip protocol {} {} dport {} counter accept comment "{}"'.format(
+                family, table, chain, protocol, protocol, value, comment))
+    with tempfile.TemporaryDirectory(prefix='sk5-nft-') as directory:
+        batch = Path(directory) / 'ports.nft'
+        batch.write_text('\n'.join(commands)+'\n', encoding='utf-8')
+        run('nft', '--check', '-f', str(batch))
+        run('nft', '-f', str(batch))
+
+
+def relay_hook(items, remove=False):
+    """Relay startup rebuilds its table; reapply ports afterwards, without restarting it."""
+    enabled = RELAY_UNIT.is_file() and any(
+            i.get('chain', {}).get('family') == 'inet' and
+            i.get('chain', {}).get('table') == 'sbm_relay' for i in items)
+    paths = ((RELAY_DROPIN, RELAY_HOOK), (ORDER_DROPIN, ORDER_HOOK))
+    for path, content in paths:
+        if path.is_symlink() or (path.exists() and path.read_text(encoding='utf-8') != content):
+            raise ValueError('同名SK5恢复文件不属于本工具，拒绝覆盖：'+str(path))
+    changed = False
+    for path, content in paths:
+        if remove and path.exists():
+            path.unlink()
+            changed = True
+        elif not remove and enabled and not path.exists():
+            path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+            atomic(path, content, 0o644)
+            changed = True
+    if changed:
+        run('systemctl', 'daemon-reload')
 
 
 def state_read():
@@ -94,11 +148,7 @@ def _apply(settings, fresh=False):
         if fresh and not old and any(i.get('rule', {}).get('comment') in COMMENTS for i in items):
             raise ValueError('发现同名但非本安装记录的防火墙规则，拒绝覆盖')
         atomic(STATE, json.dumps({'backend': backend}))
-        nft_clear(items)
-        for family, table, chain in chains:
-            for protocol, value, comment in (('tcp', port, COMMENTS[0]), ('udp', udp, COMMENTS[1])):
-                run('nft', 'insert', 'rule', family, table, chain, 'ip', 'protocol', protocol,
-                    protocol, 'dport', value, 'counter', 'accept', 'comment', '"'+comment+'"')
+        nft_sync(items, port, udp)
         result = {'backend': backend}
     elif backend == 'iptables':
         if command_ok('iptables', '-n', '-L', CHAIN):
@@ -127,6 +177,14 @@ def _apply(settings, fresh=False):
         result = {'backend': backend}
     else:
         raise ValueError('未知的防火墙后端，未作修改')
+    # A saved iptables/firewalld backend cannot bypass a later relay DROP chain.
+    items = nft_rules()
+    relay = any(i.get('chain', {}).get('family') == 'inet' and
+                i.get('chain', {}).get('table') == 'sbm_relay' for i in items)
+    if backend != 'nft' and (relay or (old or {}).get('nft_overlay')):
+        nft_sync(items, port, udp)
+        result['nft_overlay'] = True
+    relay_hook(items)
     atomic(STATE, json.dumps(result, ensure_ascii=False, indent=2)+'\n')
     return backend
 
@@ -136,6 +194,8 @@ def _clear():
     if not state:
         return
     backend = state['backend']
+    if backend != 'nft' and state.get('nft_overlay'):
+        nft_clear(nft_rules())
     if backend == 'firewalld':
         for item in state.get('entries', []):
             for key, flags in (('runtime', []), ('permanent', ['--permanent'])):
@@ -150,6 +210,7 @@ def _clear():
             run('iptables', '-X', CHAIN, check=False)
     else:
         raise ValueError('无法确认防火墙规则归属')
+    relay_hook([], remove=True)
     STATE.unlink()
 
 
