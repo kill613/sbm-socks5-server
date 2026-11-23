@@ -124,7 +124,7 @@ def main():
         sk5.persist(config)
         sk5_firewall.apply(config, fresh=True)
         firewall_unit = ('[Unit]\nDescription=SOCKS5专属端口放行\nWants=network-online.target\n'
-            'After=network-online.target firewalld.service nftables.service ufw.service netfilter-persistent.service\n'
+            'After=network-online.target firewalld.service nftables.service ufw.service netfilter-persistent.service sbm-relay-firewall.service\n'
             '[Service]\nType=oneshot\nExecStart=/usr/local/bin/sk5 firewall\n'
             'ExecStop=/usr/local/bin/sk5 firewall-clear\nRemainAfterExit=yes\nUMask=0077\n'
             '[Install]\nWantedBy=multi-user.target\n')

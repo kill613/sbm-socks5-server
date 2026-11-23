@@ -183,7 +183,7 @@ sbm_fresh_guard
 sbm_boot=$(mktemp -d /root/sbm-bootstrap-XXXXXX)
 trap 'rm -f -- "$sbm_boot/package.sh"' EXIT
 sbm_dependencies "$sbm_boot"
-sbm_download "https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh" "$sbm_boot/package.sh" ef3454c1b5c7f9465b99294e9ef83cb8a396ebac384ceea600a6311f82236e02
+sbm_download "https://raw.githubusercontent.com/kill613/sbm-socks5-server/main/install.sh" "$sbm_boot/package.sh" 02994380b8f9863feb58e85c953555e4f11e45c4bf3b43b61360dc8bde442da6
 bash -n "$sbm_boot/package.sh"
 bash "$sbm_boot/package.sh"
 )

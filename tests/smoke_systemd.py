@@ -42,6 +42,31 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sentinel:
     cli('check')
     assert sentinel.getsockname()[1] == 38162
     assert Path('/proc/sys/net/ipv4/ip_forward').read_text() == before
+    # Exercise the delivered repair and actual systemd ExecStartPost on this
+    # disposable VM. Keep policy ACCEPT here; DROP behavior is tested in netns.
+    import shutil
+    if shutil.which('nft'):
+        fixture = Path('/run/sk5-test-relay.nft')
+        fixture.write_text('add table inet sbm_relay\nadd chain inet sbm_relay input { type filter hook input priority 0; policy accept; }\n')
+        unit = Path('/etc/systemd/system/sbm-relay-firewall.service')
+        unit.write_text('[Service]\nType=oneshot\nExecStart=/usr/sbin/nft -f /run/sk5-test-relay.nft\nExecStop=/usr/sbin/nft delete table inet sbm_relay\nRemainAfterExit=yes\n')
+        common.run('systemctl', 'daemon-reload')
+        common.run('systemctl', 'start', 'sbm-relay-firewall.service')
+        main_pid = common.run('systemctl', 'show', sk5.UNIT, '-p', 'MainPID', '--value').stdout
+        previous = (sk5.ROOT/'settings.json').read_bytes()
+        print(common.run('bash', str(ROOT/'repair-firewall.sh')).stdout)
+        for attempt in range(2):
+            common.run('systemctl', 'restart', 'sbm-relay-firewall.service')
+            rules = common.run('nft', '-j', 'list', 'table', 'inet', 'sbm_relay').stdout
+            assert rules.count('sbm-sk5-tcp') == 1 and rules.count('sbm-sk5-udp') == 1
+        assert common.run('systemctl', 'show', sk5.UNIT, '-p', 'MainPID', '--value').stdout == main_pid
+        assert (sk5.ROOT/'settings.json').read_bytes() == previous
+        cli('firewall-clear')
+        assert not Path('/etc/systemd/system/sbm-relay-firewall.service.d/91-sk5-coexist.conf').exists()
+        common.run('systemctl', 'stop', 'sbm-relay-firewall.service')
+        unit.unlink(); fixture.unlink()
+        common.run('systemctl', 'daemon-reload')
+        cli('firewall')
     for unit in ('sbm-sk5.service', 'sbm-sk5-firewall.service'):
         common.run('systemctl', 'is-enabled', '--quiet', unit)
 print('PASS: 独立单文件安装、清华依赖、真实服务自启、账户/端口管理、停止状态保持、保留L2TP端口')
